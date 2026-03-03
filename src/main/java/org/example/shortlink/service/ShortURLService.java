@@ -6,6 +6,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 
 @Service
@@ -74,4 +75,42 @@ public class ShortURLService
 
         return sb.toString();
     }
+
+    public void disableShortCode(String shortCode)
+    {
+        ShortURL shortURL = shortURLRepository.findByShortCode(shortCode)
+                .orElseThrow(() -> new RuntimeException("短码不存在"));
+
+        shortURL.setEnabled(false);
+        shortURLRepository.save(shortURL);
+    }
+
+    public void enableShortCode(String shortCode)
+    {
+        ShortURL shortURL = shortURLRepository.findByShortCode(shortCode)
+                .orElseThrow(() -> new RuntimeException("短码不存在"));
+
+        shortURL.setEnabled(true);
+        shortURLRepository.save(shortURL);
+    }
+
+    public void deleteShortCode(String shortCode)
+    {
+        ShortURL shortURL = shortURLRepository.findByShortCode(shortCode)
+                .orElseThrow(() -> new RuntimeException("短码不存在"));
+
+        shortURLRepository.delete(shortURL);
+    }
+
+    public ShortURL getShortUrlInfo(String shortCode)
+    {
+        return shortURLRepository.findByShortCode(shortCode)
+                .orElseThrow(() -> new RuntimeException("短码不存在"));
+    }
+
+    public List<ShortURL> getShortUrlsByAppId(String appId)
+    {
+        return shortURLRepository.findByAppId(appId);
+    }
+
 }

@@ -1,6 +1,8 @@
 package org.example.shortlink.controller;
 
+import org.example.shortlink.common.ApiResponse;
 import org.example.shortlink.dto.LoginRequest;
+import org.example.shortlink.dto.LoginResponse;
 import org.example.shortlink.dto.RegisterRequest;
 import org.example.shortlink.entity.User;
 import org.example.shortlink.repository.UserRepository;
@@ -19,48 +21,64 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
 @RestController
 @RequestMapping("/api/user")
-public class UserController
-{
+public class UserController {
+
     @Autowired
     private UserRepository userRepository;
 
+    @Autowired
+    private AuthenticationManager authenticationManager;
+
+    // 注册
     @PostMapping("/register")
-    public ResponseEntity<String> register(@RequestBody RegisterRequest request)
+    public ResponseEntity<ApiResponse<User>> register(
+            @RequestBody RegisterRequest request)
     {
-        if (userRepository.findByUsername(request.getUsername()).isPresent())
-        {
-            return ResponseEntity.badRequest().body("用户名已存在");
+        if (userRepository.findByUsername(request.getUsername()).isPresent()) {
+            return ResponseEntity.ok(
+                    ApiResponse.error("用户名已存在")
+            );
         }
 
         User user = new User();
         user.setUsername(request.getUsername());
 
-        BCryptPasswordEncoder encoder =new BCryptPasswordEncoder();
+        BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
         user.setPassword(encoder.encode(request.getPassword()));
-
         user.getRoles().add("ROLE_USER");
 
         userRepository.save(user);
 
-        return ResponseEntity.ok("注册成功");
+        return ResponseEntity.ok(
+                ApiResponse.success(user, "注册成功")
+        );
     }
 
-    @Autowired
-    private AuthenticationManager authenticationManager;
-
+    // 登录
     @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestBody LoginRequest request)
+    public ResponseEntity<ApiResponse<LoginResponse>> login(
+            @RequestBody LoginRequest request)
     {
-        UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
-                request.getUsername(),
-                request.getPassword()
+        Authentication authentication =
+                authenticationManager.authenticate(
+                        new UsernamePasswordAuthenticationToken(
+                                request.getUsername(),
+                                request.getPassword()
+                        )
+                );
+
+        // ⚠ 现在还没有真正JWT，先给个假token
+        String token = "temporary-token";
+
+        User user = userRepository
+                .findByUsername(request.getUsername())
+                .orElseThrow();
+
+        LoginResponse response =
+                new LoginResponse(token, user);
+
+        return ResponseEntity.ok(
+                ApiResponse.success(response, "登录成功")
         );
-        Authentication authentication = authenticationManager.authenticate(authToken);
-        if (authentication.isAuthenticated())
-        {
-            SecurityContextHolder.getContext().setAuthentication(authentication);
-            return ResponseEntity.ok("登录成功");
-        }
-        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("登录失败");
     }
 }
