@@ -46,7 +46,7 @@ public class UserController {
 
         BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
         user.setPassword(encoder.encode(request.getPassword()));
-        user.getRoles().add("ROLE_USER");
+        user.getRoles().add("USER");
 
         userRepository.save(user);
 
@@ -73,7 +73,10 @@ public class UserController {
                 .findByUsername(request.getUsername())
                 .orElseThrow();
 
-        String token = JwtUtil.generateToken(user.getUsername(), user.getRoles());
+        String token = JwtUtil.generateToken(
+                user.getUsername(),
+                user.getRoles().stream().toList()
+        );
 
         LoginResponse response =
                 new LoginResponse(token, user);

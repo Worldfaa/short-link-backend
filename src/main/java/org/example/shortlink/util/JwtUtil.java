@@ -8,18 +8,18 @@ import io.jsonwebtoken.security.Keys;
 
 import java.security.Key;
 import java.util.Date;
-import java.util.Set;
+import java.util.List;
+import java.util.stream.Collectors;
 
-public class JwtUtil
-{
+public class JwtUtil {
     private static final Key key = Keys.secretKeyFor(SignatureAlgorithm.HS256);
     private static final long EXPIRATION = 1000 * 60 * 60 * 24; // 24小时
 
     // 生成 token
-    public static String generateToken(String username, Set<String> roles) {
+    public static String generateToken(String username, List<String> roles) {
         return Jwts.builder()
                 .setSubject(username)
-                .claim("roles", roles)
+                .claim("roles", roles) // 存 List，不存 Set
                 .setIssuedAt(new Date())
                 .setExpiration(new Date(System.currentTimeMillis() + EXPIRATION))
                 .signWith(key)
@@ -34,12 +34,20 @@ public class JwtUtil
                 .parseClaimsJws(token);
     }
 
+    // 获取用户名
     public static String getUsername(String token) {
         return parseToken(token).getBody().getSubject();
     }
 
-    public static Set<String> getRoles(String token) {
+    // 获取角色列表，返回 List<String>
+    public static List<String> getRoles(String token) {
         Claims claims = parseToken(token).getBody();
-        return (Set<String>) claims.get("roles");
+        Object rolesObj = claims.get("roles");
+        if (rolesObj instanceof List<?>) {
+            return ((List<?>) rolesObj).stream()
+                    .map(String::valueOf)
+                    .collect(Collectors.toList());
+        }
+        return List.of();
     }
 }

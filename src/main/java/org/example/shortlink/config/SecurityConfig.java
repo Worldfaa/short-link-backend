@@ -1,10 +1,10 @@
 package org.example.shortlink.config;
 
+import org.example.shortlink.filter.JwtAuthenticationFilter;
 import org.example.shortlink.service.CustomUserDetailsService;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -12,6 +12,7 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 @Configuration
 @EnableWebSecurity
@@ -22,25 +23,30 @@ public class SecurityConfig {
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
 
         http
-                .csrf(csrf -> csrf.disable()) // 方便测试
+                .csrf(csrf -> csrf.disable()) // 禁用 CSRF，便于测试
 
+                // 权限配置
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers(
-                                "/api/user/register",
-                                "/api/user/login",
-                                "/api/short-url/**"
-                        ).permitAll()
+                        // 注册登录接口公开
+                        .requestMatchers("/api/user/register", "/api/user/login").permitAll()
 
-                        .requestMatchers("/admin/**")
-                        .hasRole("ADMIN")
+                        // 管理端接口，需要 ADMIN
+                        .requestMatchers("/admin/**").hasRole("ADMIN")
 
-                        .anyRequest()
-                        .authenticated()
+                        // 短链操纵接口，需要 ADMIN
+                        .requestMatchers("/api/short-url/disable/**").hasRole("ADMIN")
+                        .requestMatchers("/api/short-url/enable/**").hasRole("ADMIN")
+                        .requestMatchers("/api/short-url/delete/**").hasRole("ADMIN")
+
+                        // 其他接口需要登录
+                        .anyRequest().authenticated()
                 )
 
-                .formLogin(form -> form.disable()) // 关闭默认表单登录
+                .formLogin(form -> form.disable())   // 禁用默认表单登录
+                .logout(logout -> logout.permitAll()) // 登出接口公开
 
-                .logout(logout -> logout.permitAll());
+                // JWT 过滤器加入
+                .addFilterBefore(new JwtAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
@@ -51,8 +57,7 @@ public class SecurityConfig {
         return new BCryptPasswordEncoder();
     }
 
-
-    // 让 Controller 里可以使用 AuthenticationManager
+    // 让 Controller 可以注入 AuthenticationManager
     @Bean
     public AuthenticationManager authenticationManager(
             AuthenticationConfiguration config) throws Exception {
