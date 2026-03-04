@@ -6,6 +6,7 @@ import org.example.shortlink.dto.LoginResponse;
 import org.example.shortlink.dto.RegisterRequest;
 import org.example.shortlink.entity.User;
 import org.example.shortlink.repository.UserRepository;
+import org.example.shortlink.util.JwtUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -67,12 +68,12 @@ public class UserController {
                         )
                 );
 
-        // ⚠ 现在还没有真正JWT，先给个假token
-        String token = "temporary-token";
 
         User user = userRepository
                 .findByUsername(request.getUsername())
                 .orElseThrow();
+
+        String token = JwtUtil.generateToken(user.getUsername(), user.getRoles());
 
         LoginResponse response =
                 new LoginResponse(token, user);

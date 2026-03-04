@@ -41,8 +41,20 @@ public class ShortURLController {
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 
+    // 短链跳转
+    @GetMapping("/{shortCode}")
+    public void redirectToOriginalUrl(@PathVariable String shortCode,
+                                      HttpServletResponse response) throws IOException {
+        try {
+            String originalUrl = shortURLService.getOriginalUrl(shortCode);
+            response.sendRedirect(originalUrl);
+        } catch (RuntimeException e) {
+            response.sendError(HttpStatus.NOT_FOUND.value(), e.getMessage());
+        }
+    }
+
     // 禁用
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
     @PutMapping("/disable/{shortCode}")
     public ResponseEntity<ApiResponse<Void>> disable(@PathVariable String shortCode) {
         shortURLService.disableShortCode(shortCode);
@@ -50,7 +62,7 @@ public class ShortURLController {
     }
 
     // 启用
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
     @PutMapping("/enable/{shortCode}")
     public ResponseEntity<ApiResponse<Void>> enable(@PathVariable String shortCode) {
         shortURLService.enableShortCode(shortCode);
@@ -58,7 +70,7 @@ public class ShortURLController {
     }
 
     // 删除
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
     @DeleteMapping("/{shortCode}")
     public ResponseEntity<ApiResponse<Void>> delete(@PathVariable String shortCode) {
         shortURLService.deleteShortCode(shortCode);

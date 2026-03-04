@@ -30,7 +30,7 @@ public class User
     //添加管理员角色
     public void addAdminRole()
     {
-        roles.add("ADMIN");
+        roles.add("ROLE_ADMIN");
     }
 
     public Long getId() { return id; }
